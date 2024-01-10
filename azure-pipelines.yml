@@ -47,6 +47,7 @@ stages:
         path: '.'
         name: 'Terraform Code'
         scanSecrets: true
+        wizenv: 'fedramp'
 
 
     - task: Docker@2
