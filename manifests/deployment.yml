@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: drawsmcgrawpipelinesjavascriptdocker 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drawsmcgrawpipelinesjavascriptdocker
+  template:
+    metadata:
+      labels:
+        app: drawsmcgrawpipelinesjavascriptdocker 
+    spec:
+      containers:
+        - name: drawsmcgrawpipelinesjavascriptdocker 
+          image: drmaloneregistry.azurecr.io/drawsmcgrawpipelinesjavascriptdocker
+          ports:
+          - containerPort: 8080
