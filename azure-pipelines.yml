@@ -3,27 +3,29 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
-- main
-
+  branches:
+    include:
+    - main
 resources:
-- repo: self
-
+  repositories:
+  - repository: self
 variables:
-
-  # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: 'f6eeebae-9584-43a8-9838-9592cdd96737'
-  imageRepository: 'drawsmcgrawpipelinesjavascriptdocker'
-  containerRegistry: 'drmaloneregistry.azurecr.io'
-  dockerfilePath: '**/Dockerfile'
-  tag: '$(Build.BuildId)'
-  imagePullSecret: 'drmaloneregistry9428-auth'
-
-  # Agent VM image name
-  vmImageName: 'ubuntu-latest'
-
-  # Name of the new namespace being created to deploy the PR changes.
-  k8sNamespaceForPR: 'review-app-$(System.PullRequest.PullRequestId)'
-
+- name: dockerRegistryServiceConnection
+  value: 'f6eeebae-9584-43a8-9838-9592cdd96737'
+- name: imageRepository
+  value: 'drawsmcgrawpipelinesjavascriptdocker'
+- name: containerRegistry
+  value: 'drmaloneregistry.azurecr.io'
+- name: dockerfilePath
+  value: '**/Dockerfile'
+- name: tag
+  value: '$(Build.BuildId)'
+- name: imagePullSecret
+  value: 'drmaloneregistry9428-auth'
+- name: vmImageName
+  value: 'ubuntu-latest'
+- name: k8sNamespaceForPR
+  value: 'review-app-$(System.PullRequest.PullRequestId)'
 stages:
 - stage: Build
   displayName: Build stage
@@ -33,6 +35,20 @@ stages:
     pool:
       vmImage: $(vmImageName)
     steps:
+    - task: wiz@0
+      displayName: Wiz CLI Scan
+      inputs:
+        command: 'iac'
+        clientid: $(WIZ_CLIENT_ID)
+        secret: $(WIZ_CLIENT_SECRET)
+        succeedOnFailures: true
+        policyHitsOnly: false
+        scanTags: "cicd=ado,app=terraform"
+        path: '.'
+        name: 'Terraform Code'
+        scanSecrets: true
+
+
     - task: Docker@2
       displayName: Build and push an image to container registry
       inputs:
@@ -42,21 +58,22 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
-
-    - upload: manifests
-      artifact: manifests
-
+    - task: ecdc45f6-832d-4ad9-b52b-ee49e94659be@0
+      inputs:
+        targetPath: manifests
+        artifactName: manifests
 - stage: Deploy
   displayName: Deploy stage
-  dependsOn: Build
-
+  dependsOn:
+  - Build
   jobs:
   - deployment: Deploy
     condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
     displayName: Deploy
     pool:
       vmImage: $(vmImageName)
-    environment: 'drawsmcgrawpipelinesjavascriptdocker.default'
+    environment:
+      name: 'drawsmcgrawpipelinesjavascriptdocker.default'
     strategy:
       runOnce:
         deploy:
@@ -67,7 +84,6 @@ stages:
               action: createSecret
               secretName: $(imagePullSecret)
               dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
-
           - task: KubernetesManifest@0
             displayName: Deploy to Kubernetes cluster
             inputs:
@@ -79,27 +95,26 @@ stages:
                 $(imagePullSecret)
               containers: |
                 $(containerRegistry)/$(imageRepository):$(tag)
-
   - deployment: DeployPullRequest
     displayName: Deploy Pull request
     condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/pull/'))
     pool:
       vmImage: $(vmImageName)
-
-    environment: 'drawsmcgrawpipelinesjavascriptdocker.$(k8sNamespaceForPR)'
+    environment:
+      name: 'drawsmcgrawpipelinesjavascriptdocker.$(k8sNamespaceForPR)'
     strategy:
       runOnce:
         deploy:
           steps:
-          - reviewApp: default
-
+          - task: ReviewApp@0
+            inputs:
+              resourceName: default
           - task: Kubernetes@1
             displayName: 'Create a new namespace for the pull request'
             inputs:
               command: apply
               useConfigurationFile: true
               inline: '{ "kind": "Namespace", "apiVersion": "v1", "metadata": { "name": "$(k8sNamespaceForPR)" }}'
-
           - task: KubernetesManifest@0
             displayName: Create imagePullSecret
             inputs:
@@ -107,7 +122,6 @@ stages:
               secretName: $(imagePullSecret)
               namespace: $(k8sNamespaceForPR)
               dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
-
           - task: KubernetesManifest@0
             displayName: Deploy to the new namespace in the Kubernetes cluster
             inputs:
@@ -120,7 +134,6 @@ stages:
                 $(imagePullSecret)
               containers: |
                 $(containerRegistry)/$(imageRepository):$(tag)
-
           - task: Kubernetes@1
             name: get
             displayName: 'Get services in the new namespace'
@@ -130,13 +143,13 @@ stages:
               namespace: $(k8sNamespaceForPR)
               arguments: svc
               outputFormat: jsonpath='http://{.items[0].status.loadBalancer.ingress[0].ip}:{.items[0].spec.ports[0].port}'
-
-          # Getting the IP of the deployed service and writing it to a variable for posing comment
-          - script: |
-              url="$(get.KubectlOutput)"
-              message="Your review app has been deployed"
-              if [ ! -z "$url" -a "$url" != "http://:" ]
-              then
-                message="${message} and is available at $url.<br><br>[Learn More](https://aka.ms/testwithreviewapps) about how to test and provide feedback for the app."
-              fi
-              echo "##vso[task.setvariable variable=GITHUB_COMMENT]$message"
+          - task: CmdLine@2
+            inputs:
+              script: |
+                url="$(get.KubectlOutput)"
+                message="Your review app has been deployed"
+                if [ ! -z "$url" -a "$url" != "http://:" ]
+                then
+                  message="${message} and is available at $url.<br><br>[Learn More](https://aka.ms/testwithreviewapps) about how to test and provide feedback for the app."
+                fi
+                echo "##vso[task.setvariable variable=GITHUB_COMMENT]$message"
