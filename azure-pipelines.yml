@@ -68,17 +68,41 @@ stages:
 
 
 
-- stage: Sanity
-  dependsOn: Build
-  displayName: 'Sanity Test'
-  jobs:
-  - job: testing
-    displayName: 'Testing Job'
-    steps:
-    - task: Bash@3
-      inputs:
-        targetType: 'inline'
-        script: 'echo ''I am losing my mind'''
+# - stage: Sanity
+#   dependsOn: Build
+#   displayName: 'Sanity Test'
+#   jobs:
+#   - job: testing
+#     displayName: 'Testing Job'
+#     steps:
+#     - task: Bash@3
+#       inputs:
+#         targetType: 'inline'
+#         script: 'echo ''I am losing my mind'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# - task: KubernetesManifest@1
+#   inputs:
+#     action: 'deploy'
+#     connectionType: 'kubernetesServiceConnection'
+#     kubernetesServiceConnection: 'drmalone-k8s'
+#     namespace: 'default'
+#     manifests: '$(Pipeline.Workspace)/manifests/deployment.yml                 $(Pipeline.Workspace)/manifests/service.yml'
+#     imagePullSecrets: '$(imagePullSecrets)'
+
 
 
 
@@ -87,7 +111,7 @@ stages:
   dependsOn:
   - Build
   jobs:
-  - deployment: Deploy
+  - deployment: Deployment
     condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
     displayName: Deploy
     pool:
@@ -104,11 +128,13 @@ stages:
               action: createSecret
               secretName: $(imagePullSecret)
               dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+              connectionType: 'kubernetesServiceConnection'
               kubernetesServiceConnection: $(k8sServiceConnection)
-          - task: KubernetesManifest@0
+          - task: KubernetesManifest@1
             displayName: Deploy to Kubernetes cluster
             inputs:
               action: deploy
+              connectionType: 'kubernetesServiceConnection'
               kubernetesServiceConnection: $(k8sServiceConnection)
               manifests: |
                 $(Pipeline.Workspace)/manifests/deployment.yml
