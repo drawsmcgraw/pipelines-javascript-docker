@@ -91,7 +91,7 @@ stages:
         succeedOnFailures: true
         policyHitsOnly: false
         scanTags: "cicd=ado,javascript"
-        image: "DNE"
+        image: $(dockerRegistryServiceConnection)/$(imageRepository):$(tag)
         #image: "***/drawsmcgrawpipelinesjavascriptdocker:$(tag)"
         scanPolicies: 'vuln-one-critical,vuln-two-high'
         scanSecrets: true
