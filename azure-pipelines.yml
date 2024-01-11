@@ -30,10 +30,10 @@ variables:
   value: drmalone-k8s
 stages:
 - stage: Build
-  displayName: Build stage
+  displayName: Build, Scan, and Deploy
   jobs:
   - job: Build
-    displayName: Build
+    displayName: Build, Scan, and Deploy
     pool:
       vmImage: $(vmImageName)
     steps:
@@ -83,8 +83,8 @@ stages:
         connectionType: 'kubernetesServiceConnection'
         kubernetesServiceConnection: $(k8sServiceConnection)
         manifests: |
-          $(Pipeline.Workspace)/manifests/deployment.yml
-          $(Pipeline.Workspace)/manifests/service.yml
+          manifests/deployment.yml
+          manifests/service.yml
         imagePullSecrets: |
           $(imagePullSecret)
         containers: |
