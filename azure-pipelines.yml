@@ -28,6 +28,9 @@ variables:
   value: 'review-app-$(System.PullRequest.PullRequestId)'
 - name: k8sServiceConnection
   value: drmalone-k8s
+
+
+
 stages:
 - stage: Build
   displayName: Build, Scan, and Deploy
@@ -37,8 +40,11 @@ stages:
     pool:
       vmImage: $(vmImageName)
     steps:
+
+
+
     - task: wiz@0
-      displayName: Wiz CLI Scan
+      displayName: Wiz IaC Scan
       inputs:
         command: 'iac'
         clientid: $(WIZ_CLIENT_ID)
@@ -51,6 +57,18 @@ stages:
         scanSecrets: true
         wizenv: 'fedramp'
 
+    - task: wiz@0
+      displayName: Wiz Directory Scan
+      inputs:
+        command: 'dir'
+        clientid: $(WIZ_CLIENT_ID)
+        secret: $(WIZ_CLIENT_SECRET)
+        succeedOnFailures: true
+        policyHitsOnly: false
+        scanTags: "directory"
+        path: '.'
+        scanPolicies: 'vuln-one-medium'
+
 
     - task: Docker@2
       displayName: Build and push an image to container registry
@@ -61,6 +79,22 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+
+
+    - task: wiz@0
+      displayName: Wiz Container Image Scan
+      inputs:
+        command: 'image'
+        clientid: $(WIZ_CLIENT_ID)
+        secret: $(WIZ_CLIENT_SECRET)
+        succeedOnFailures: true
+        policyHitsOnly: false
+        scanTags: "cicd=ado,javascript"
+        image: "***/drawsmcgrawpipelinesjavascriptdocker:$(tag)"
+        scanPolicies: 'vuln-one-critical,vuln-two-high'
+        scanSecrets: true
+        wizenv: 'fedramp'
+
     - task: ecdc45f6-832d-4ad9-b52b-ee49e94659be@0
       inputs:
         targetPath: manifests
