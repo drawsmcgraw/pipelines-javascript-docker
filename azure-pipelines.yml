@@ -26,6 +26,8 @@ variables:
   value: 'ubuntu-latest'
 - name: k8sNamespaceForPR
   value: 'review-app-$(System.PullRequest.PullRequestId)'
+- name: k8sServiceConnection
+  value: drmalone-k8s
 stages:
 - stage: Build
   displayName: Build stage
@@ -85,10 +87,12 @@ stages:
               action: createSecret
               secretName: $(imagePullSecret)
               dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+              kubernetesServiceConnection: $(k8sServiceConnection)
           - task: KubernetesManifest@0
             displayName: Deploy to Kubernetes cluster
             inputs:
               action: deploy
+              kubernetesServiceConnection: $(k8sServiceConnection)
               manifests: |
                 $(Pipeline.Workspace)/manifests/deployment.yml
                 $(Pipeline.Workspace)/manifests/service.yml
