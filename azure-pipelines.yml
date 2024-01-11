@@ -65,6 +65,16 @@ stages:
       inputs:
         targetPath: manifests
         artifactName: manifests
+- stage: Sanity
+  displayName: 'Sanity Test'
+  jobs:
+  - job: testing
+    displayName: 'Testing Job'
+    steps:
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: 'echo ''I am losing my mind'''
 - stage: Deploy
   displayName: Deploy stage
   dependsOn:
