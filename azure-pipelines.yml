@@ -66,6 +66,7 @@ stages:
         targetPath: manifests
         artifactName: manifests
 - stage: Sanity
+  dependsOn: Build
   displayName: 'Sanity Test'
   jobs:
   - job: testing
