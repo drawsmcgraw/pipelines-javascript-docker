@@ -68,6 +68,7 @@ stages:
         scanTags: "directory"
         path: '.'
         scanPolicies: 'vuln-one-medium'
+        wizenv: 'fedramp'
 
 
     - task: Docker@2
@@ -90,7 +91,8 @@ stages:
         succeedOnFailures: true
         policyHitsOnly: false
         scanTags: "cicd=ado,javascript"
-        image: "***/drawsmcgrawpipelinesjavascriptdocker:$(tag)"
+        image: "DNE"
+        #image: "***/drawsmcgrawpipelinesjavascriptdocker:$(tag)"
         scanPolicies: 'vuln-one-critical,vuln-two-high'
         scanSecrets: true
         wizenv: 'fedramp'
