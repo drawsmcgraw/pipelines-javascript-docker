@@ -65,6 +65,9 @@ stages:
       inputs:
         targetPath: manifests
         artifactName: manifests
+
+
+
 - stage: Sanity
   dependsOn: Build
   displayName: 'Sanity Test'
@@ -76,13 +79,16 @@ stages:
       inputs:
         targetType: 'inline'
         script: 'echo ''I am losing my mind'''
+
+
+
 - stage: Deploy
   displayName: Deploy stage
   dependsOn:
   - Build
   jobs:
   - deployment: Deploy
-    #condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
+    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
     displayName: Deploy
     pool:
       vmImage: $(vmImageName)
@@ -111,6 +117,8 @@ stages:
                 $(imagePullSecret)
               containers: |
                 $(containerRegistry)/$(imageRepository):$(tag)
+
+
   - deployment: DeployPullRequest
     displayName: Deploy Pull request
     condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/pull/'))
