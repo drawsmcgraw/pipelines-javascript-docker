@@ -76,6 +76,21 @@ stages:
         kubernetesServiceConnection: $(k8sServiceConnection)
 
 
+    - task: KubernetesManifest@0
+      displayName: Deploy to Kubernetes cluster
+      inputs:
+        action: deploy
+        connectionType: 'kubernetesServiceConnection'
+        kubernetesServiceConnection: $(k8sServiceConnection)
+        manifests: |
+          $(Pipeline.Workspace)/manifests/deployment.yml
+          $(Pipeline.Workspace)/manifests/service.yml
+        imagePullSecrets: |
+          $(imagePullSecret)
+        containers: |
+          $(containerRegistry)/$(imageRepository):$(tag)
+
+
 
 # - stage: Sanity
 #   dependsOn: Build
@@ -115,100 +130,100 @@ stages:
 
 
 
-- stage: Deploy
-  displayName: Deploy stage
-  dependsOn:
-  - Build
-  jobs:
-  - deployment: Deployment
-    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
-    displayName: Deploy
-    pool:
-      vmImage: $(vmImageName)
-    environment:
-      name: 'drawsmcgrawpipelinesjavascriptdocker.default'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: KubernetesManifest@0
-            displayName: Create imagePullSecret
-            inputs:
-              action: createSecret
-              secretName: $(imagePullSecret)
-              dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
-              connectionType: 'kubernetesServiceConnection'
-              kubernetesServiceConnection: $(k8sServiceConnection)
-          - task: KubernetesManifest@0
-            displayName: Deploy to Kubernetes cluster
-            inputs:
-              action: deploy
-              connectionType: 'kubernetesServiceConnection'
-              kubernetesServiceConnection: $(k8sServiceConnection)
-              manifests: |
-                $(Pipeline.Workspace)/manifests/deployment.yml
-                $(Pipeline.Workspace)/manifests/service.yml
-              imagePullSecrets: |
-                $(imagePullSecret)
-              containers: |
-                $(containerRegistry)/$(imageRepository):$(tag)
+# - stage: Deploy
+#   displayName: Deploy stage
+#   dependsOn:
+#   - Build
+#   jobs:
+#   - deployment: Deployment
+#     condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
+#     displayName: Deploy
+#     pool:
+#       vmImage: $(vmImageName)
+#     environment:
+#       name: 'drawsmcgrawpipelinesjavascriptdocker.default'
+#     strategy:
+#       runOnce:
+#         deploy:
+#           steps:
+#           - task: KubernetesManifest@0
+#             displayName: Create imagePullSecret
+#             inputs:
+#               action: createSecret
+#               secretName: $(imagePullSecret)
+#               dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+#               connectionType: 'kubernetesServiceConnection'
+#               kubernetesServiceConnection: $(k8sServiceConnection)
+#           - task: KubernetesManifest@0
+#             displayName: Deploy to Kubernetes cluster
+#             inputs:
+#               action: deploy
+#               connectionType: 'kubernetesServiceConnection'
+#               kubernetesServiceConnection: $(k8sServiceConnection)
+#               manifests: |
+#                 $(Pipeline.Workspace)/manifests/deployment.yml
+#                 $(Pipeline.Workspace)/manifests/service.yml
+#               imagePullSecrets: |
+#                 $(imagePullSecret)
+#               containers: |
+#                 $(containerRegistry)/$(imageRepository):$(tag)
 
 
-  - deployment: DeployPullRequest
-    displayName: Deploy Pull request
-    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/pull/'))
-    pool:
-      vmImage: $(vmImageName)
-    environment:
-      name: 'drawsmcgrawpipelinesjavascriptdocker.$(k8sNamespaceForPR)'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: ReviewApp@0
-            inputs:
-              resourceName: default
-          - task: Kubernetes@1
-            displayName: 'Create a new namespace for the pull request'
-            inputs:
-              command: apply
-              useConfigurationFile: true
-              inline: '{ "kind": "Namespace", "apiVersion": "v1", "metadata": { "name": "$(k8sNamespaceForPR)" }}'
-          - task: KubernetesManifest@0
-            displayName: Create imagePullSecret
-            inputs:
-              action: createSecret
-              secretName: $(imagePullSecret)
-              namespace: $(k8sNamespaceForPR)
-              dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
-          - task: KubernetesManifest@0
-            displayName: Deploy to the new namespace in the Kubernetes cluster
-            inputs:
-              action: deploy
-              namespace: $(k8sNamespaceForPR)
-              manifests: |
-                $(Pipeline.Workspace)/manifests/deployment.yml
-                $(Pipeline.Workspace)/manifests/service.yml
-              imagePullSecrets: |
-                $(imagePullSecret)
-              containers: |
-                $(containerRegistry)/$(imageRepository):$(tag)
-          - task: Kubernetes@1
-            name: get
-            displayName: 'Get services in the new namespace'
-            continueOnError: true
-            inputs:
-              command: get
-              namespace: $(k8sNamespaceForPR)
-              arguments: svc
-              outputFormat: jsonpath='http://{.items[0].status.loadBalancer.ingress[0].ip}:{.items[0].spec.ports[0].port}'
-          - task: CmdLine@2
-            inputs:
-              script: |
-                url="$(get.KubectlOutput)"
-                message="Your review app has been deployed"
-                if [ ! -z "$url" -a "$url" != "http://:" ]
-                then
-                  message="${message} and is available at $url.<br><br>[Learn More](https://aka.ms/testwithreviewapps) about how to test and provide feedback for the app."
-                fi
-                echo "##vso[task.setvariable variable=GITHUB_COMMENT]$message"
+#   - deployment: DeployPullRequest
+#     displayName: Deploy Pull request
+#     condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/pull/'))
+#     pool:
+#       vmImage: $(vmImageName)
+#     environment:
+#       name: 'drawsmcgrawpipelinesjavascriptdocker.$(k8sNamespaceForPR)'
+#     strategy:
+#       runOnce:
+#         deploy:
+#           steps:
+#           - task: ReviewApp@0
+#             inputs:
+#               resourceName: default
+#           - task: Kubernetes@1
+#             displayName: 'Create a new namespace for the pull request'
+#             inputs:
+#               command: apply
+#               useConfigurationFile: true
+#               inline: '{ "kind": "Namespace", "apiVersion": "v1", "metadata": { "name": "$(k8sNamespaceForPR)" }}'
+#           - task: KubernetesManifest@0
+#             displayName: Create imagePullSecret
+#             inputs:
+#               action: createSecret
+#               secretName: $(imagePullSecret)
+#               namespace: $(k8sNamespaceForPR)
+#               dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+#           - task: KubernetesManifest@0
+#             displayName: Deploy to the new namespace in the Kubernetes cluster
+#             inputs:
+#               action: deploy
+#               namespace: $(k8sNamespaceForPR)
+#               manifests: |
+#                 $(Pipeline.Workspace)/manifests/deployment.yml
+#                 $(Pipeline.Workspace)/manifests/service.yml
+#               imagePullSecrets: |
+#                 $(imagePullSecret)
+#               containers: |
+#                 $(containerRegistry)/$(imageRepository):$(tag)
+#           - task: Kubernetes@1
+#             name: get
+#             displayName: 'Get services in the new namespace'
+#             continueOnError: true
+#             inputs:
+#               command: get
+#               namespace: $(k8sNamespaceForPR)
+#               arguments: svc
+#               outputFormat: jsonpath='http://{.items[0].status.loadBalancer.ingress[0].ip}:{.items[0].spec.ports[0].port}'
+#           - task: CmdLine@2
+#             inputs:
+#               script: |
+#                 url="$(get.KubectlOutput)"
+#                 message="Your review app has been deployed"
+#                 if [ ! -z "$url" -a "$url" != "http://:" ]
+#                 then
+#                   message="${message} and is available at $url.<br><br>[Learn More](https://aka.ms/testwithreviewapps) about how to test and provide feedback for the app."
+#                 fi
+#                 echo "##vso[task.setvariable variable=GITHUB_COMMENT]$message"
