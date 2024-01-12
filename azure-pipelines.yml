@@ -11,7 +11,7 @@ resources:
   - repository: self
 variables:
 - name: dockerRegistryServiceConnection
-  value: '04ce9547-dbff-4160-958f-d3ae18e0e5b6'
+  value: 'acedcae8-92a8-460f-8909-225e36c43e84'
 - name: imageRepository
   value: 'drawsmcgrawpipelinesjavascriptdocker'
 - name: containerRegistry
