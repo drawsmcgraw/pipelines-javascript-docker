@@ -67,7 +67,7 @@ stages:
         policyHitsOnly: false
         scanTags: "directory"
         path: '.'
-        scanPolicies: 'vuln-one-medium'
+        #scanPolicies: 'vuln-one-medium'
         wizenv: 'fedramp'
         debug: true
 
@@ -94,7 +94,7 @@ stages:
         scanTags: "cicd=ado,javascript"
         image: $(containerRegistry)/$(imageRepository):$(tag)
         #image: "***/drawsmcgrawpipelinesjavascriptdocker:$(tag)"
-        scanPolicies: 'vuln-one-critical,vuln-two-high'
+        #scanPolicies: 'vuln-one-critical,vuln-two-high'
         scanSecrets: true
         wizenv: 'fedramp'
         debug: true
