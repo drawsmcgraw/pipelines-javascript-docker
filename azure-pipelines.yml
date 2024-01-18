@@ -69,7 +69,6 @@ stages:
         path: '.'
         #scanPolicies: 'vuln-one-medium'
         wizenv: 'fedramp'
-        debug: true
 
 
     - task: Docker@2
@@ -97,7 +96,6 @@ stages:
         #scanPolicies: 'vuln-one-critical,vuln-two-high'
         scanSecrets: true
         wizenv: 'fedramp'
-        debug: true
 
     - task: ecdc45f6-832d-4ad9-b52b-ee49e94659be@0
       inputs:
