@@ -27,7 +27,7 @@ variables:
 - name: k8sNamespaceForPR
   value: 'review-app-$(System.PullRequest.PullRequestId)'
 - name: k8sServiceConnection
-  value: drmalone-k8s-private
+  value: drmalone-k8s
 
 
 
