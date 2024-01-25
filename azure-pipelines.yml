@@ -55,7 +55,7 @@ stages:
         path: '.'
         name: 'Terraform Code'
         scanSecrets: true
-        wizenv: 'fedramp'
+        #wizenv: 'fedramp'
 
     - task: wiz@0
       displayName: Wiz Directory Scan
@@ -68,7 +68,7 @@ stages:
         scanTags: "directory"
         path: '.'
         #scanPolicies: 'vuln-one-medium'
-        wizenv: 'fedramp'
+        #wizenv: 'fedramp'
 
 
     - task: Docker@2
@@ -95,7 +95,7 @@ stages:
         #image: "***/drawsmcgrawpipelinesjavascriptdocker:$(tag)"
         #scanPolicies: 'vuln-one-critical,vuln-two-high'
         scanSecrets: true
-        wizenv: 'fedramp'
+        #wizenv: 'fedramp'
 
     - task: ecdc45f6-832d-4ad9-b52b-ee49e94659be@0
       inputs:
